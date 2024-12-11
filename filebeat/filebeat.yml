@@ -1,0 +1,74 @@
+# Configuración de inputs específicos para capturar logs de Nginx
+filebeat.inputs:
+- type: filestream
+  id: nginx-logs
+  enabled: false # Deshabilitado porque usaremos el módulo
+  paths:
+   - /var/log/nginx/*.log
+
+
+# Habilitar autodiscover para contenedores Docker
+filebeat.autodiscover:
+ providers:
+   - type: docker
+     hints.enabled: true
+     templates:
+       - condition:
+           equals:
+             docker.container.name: nginx-app
+         config:
+           - type: filestream
+             paths:
+               - /var/log/nginx/access.log
+               - /var/log/nginx/error.log
+
+
+# Habilitación del módulo de Nginx
+filebeat.modules:
+- module: nginx
+  access:
+   enabled: true
+   var.paths: ["/var/log/nginx/access.log"]
+  error:
+   enabled: true
+   var.paths: ["/var/log/nginx/error.log"]
+
+
+# Procesadores para enriquecer los eventos
+processors:
+- add_docker_metadata: ~
+- add_host_metadata: ~
+
+
+# Configuración de dashboards
+setup.dashboards:
+ enabled: true
+
+
+# Configuración para Kibana para que se puedan añadir los dashboards
+setup.kibana:
+ host: "${KIBANA_HOSTS}"
+ protocol: "https"
+ username: "${ELASTIC_USER}"
+ password: "${ELASTIC_PASSWORD}"
+ ssl:
+   enabled: true
+   certificate_authorities: ["${CA_CERT}"]
+
+
+# Configuración para enviar los logs a Elasticsearch
+output.elasticsearch:
+ hosts: ${ELASTIC_HOSTS}
+ username: ${ELASTIC_USER}
+ password: ${ELASTIC_PASSWORD}
+ ssl:
+   enabled: true
+   certificate_authorities: ${CA_CERT}
+
+
+# Logging operativo
+logging:
+ level: info
+ to_files: false
+ to_stderr: true
+ selectors: ['*']

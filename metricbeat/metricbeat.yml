@@ -1,0 +1,102 @@
+setup.dashboards:
+ enabled: true # Activa la carga de dashboards
+ index: "metricbeat-*" # Define el índice donde se cargarán los datos
+
+
+setup.kibana:
+ host: "${KIBANA_HOSTS}" # Dirección de tu instancia de Kibana
+ protocol: "https" # Cambia a "http" si no usas SSL
+ username: "${ELASTIC_USER}" # Usuario con permisos para Kibana
+ password: "${ELASTIC_PASSWORD}" # Contraseña del usuario
+ ssl:
+   enabled: true
+   certificate_authorities: ["${CA_CERT}"]
+
+
+metricbeat.config.modules:
+ # Configuración del directorio donde Metricbeat cargará automáticamente los módulos habilitados
+ path: ${path.config}/modules.d/*.yml # Ruta a los archivos de configuración de módulos
+ reload.enabled: false # Deshabilita la recarga automática de módulos en tiempo de ejecución
+
+
+metricbeat.modules:
+# Configuración de los módulos de Metricbeat para recopilar métricas específicas
+
+
+- module: elasticsearch # Habilita el módulo Elasticsearch para recopilar métricas del clúster
+  xpack.enabled: true # Incluye métricas avanzadas de X-Pack (requiere licencia)
+  period: 10s # Intervalo de tiempo entre recolecciones de métricas
+  hosts: ${ELASTIC_HOSTS} # Dirección del clúster de Elasticsearch (usando una variable de entorno)
+  username: ${ELASTIC_USER} # Usuario con permisos para acceder al clúster
+  password: ${ELASTIC_PASSWORD} # Contraseña del usuario
+  ssl:
+   enabled: true # Habilita la conexión segura (SSL/TLS)
+   certificate_authorities: ${CA_CERT} # Certificado de CA para verificar la conexión segura
+
+
+#- module: logstash
+#  xpack.enabled: true # Métricas de Logstash (comentado en este caso)
+#  period: 10s # Intervalo de tiempo entre recolecciones de métricas
+#  hosts: ${LOGSTASH_HOSTS} # Dirección de Logstash (usando una variable de entorno)
+
+
+- module: kibana # Habilita el módulo Kibana para recopilar métricas del servicio
+  metricsets:
+   - stats # Conjunto de métricas que incluye estadísticas generales de Kibana
+  period: 10s # Intervalo de tiempo entre recolecciones de métricas
+  hosts: ${KIBANA_HOSTS} # Dirección del servicio de Kibana (usando una variable de entorno)
+  username: ${ELASTIC_USER} # Usuario con permisos para Kibana
+  password: ${ELASTIC_PASSWORD} # Contraseña del usuario
+  xpack.enabled: true # Incluye métricas avanzadas de X-Pack (requiere licencia)
+  ssl:
+   enabled: true # Habilita la conexión segura (SSL/TLS)
+   certificate_authorities: ${CA_CERT} # Certificado de CA para verificar la conexión segura
+
+
+- module: docker # Habilita el módulo Docker para recopilar métricas de contenedores
+  metricsets:
+   - "container" # Métricas generales de contenedores (ID, nombres, etc.)
+   - "cpu" # Métricas de uso de CPU por contenedor
+   - "diskio" # Métricas de entrada/salida de disco por contenedor
+   - "healthcheck" # Estado de salud de los contenedores
+   - "info" # Información general del motor Docker
+   #- "image" # Métricas de imágenes de Docker (deshabilitado en este caso)
+   - "memory" # Métricas de uso de memoria por contenedor
+   - "network" # Métricas de uso de red por contenedor
+  hosts: ["unix:///var/run/docker.sock"] # Conexión al socket de Docker para extraer las métricas
+  period: 10s # Intervalo de tiempo entre recolecciones de métricas
+  enabled: true # Habilita este módulo
+
+
+- module: nginx # Habilita el módulo Nginx para recopilar métricas del servidor Nginx
+  metricsets:
+   - stubstatus # Métricas del estado de Nginx
+  period: 10s # Intervalo de tiempo entre recolecciones de métricas
+  hosts: ["http://nginx-app:80/nginx-status"] # URL donde Nginx expone su endpoint de estado
+  server_status_path: "/nginx-status" # Ruta del endpoint de estado en Nginx
+  enabled: true # Habilita este módulo
+
+
+processors:
+ # Procesadores para enriquecer las métricas antes de enviarlas a Elasticsearch
+ - add_host_metadata: ~ # Añade metadatos del host, como IP, nombre del sistema, versión del SO, etc.
+ - add_docker_metadata: ~ # Añade metadatos relacionados con contenedores Docker, como etiquetas, ID, etc.
+
+
+output.elasticsearch:
+ # Configuración para enviar las métricas recopiladas a Elasticsearch
+ hosts: ${ELASTIC_HOSTS} # Dirección del clúster de Elasticsearch (usando una variable de entorno)
+ username: ${ELASTIC_USER} # Usuario con permisos para escribir métricas en Elasticsearch
+ password: ${ELASTIC_PASSWORD} # Contraseña del usuario
+ ssl:
+   enabled: true # Habilita la conexión segura (SSL/TLS)
+   certificate_authorities: ${CA_CERT} # Certificado de CA para verificar la conexión segura
+
+
+
+
+logging:
+ level: info # Nivel de detalle (debug, info, warning, error)
+ to_files: false # Deshabilita logs en archivos
+ to_stderr: true # Envío de logs al stderr (visible en Docker)
+ selectors: ['*'] # Muestra todos los eventos

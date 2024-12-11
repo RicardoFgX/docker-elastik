@@ -1,0 +1,42 @@
+auditbeat.modules:
+
+  # Módulo de integridad de archivos
+  - module: file_integrity
+    paths:
+      - /bin
+      - /usr/bin
+      - /sbin
+      - /usr/sbin
+      - /etc
+      - /var/log
+    scan_at_start: true
+    scan_rate_per_sec: 50 MiB
+    max_file_size: 100 MiB
+    hash_types: [sha256]
+    recursive: true
+
+processors:
+  - add_cloud_metadata: ~
+  
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS}"]
+  username: "${ELASTIC_USER}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl:
+    enabled: true
+    certificate_authorities: ["${CA_CERT}"]
+
+setup.kibana:
+  host: "${KIBANA_HOSTS}"
+  protocol: "https"
+  username: "${ELASTIC_USER}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl:
+    enabled: true
+    certificate_authorities: ["${CA_CERT}"]
+
+setup.dashboards:
+  enabled: true  # Habilita la carga automática de dashboards de Kibana
+  index: "auditbeat-*" # Define el índice donde se cargarán los datos
+

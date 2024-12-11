@@ -1,0 +1,34 @@
+setup.dashboards:
+  enabled: true
+
+setup.kibana:
+  host: "${KIBANA_HOSTS}"
+  protocol: "https"
+  username: "${ELASTIC_USER}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl:
+    enabled: true
+    certificate_authorities: ["${CA_CERT}"]
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS}"]
+  username: "${ELASTIC_USER}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl:
+    enabled: true
+    certificate_authorities: ["${CA_CERT}"]
+
+metricbeat.modules:
+- module: system
+  metricsets:
+    - cpu
+    - memory
+    - network
+  period: 10s
+  hosts: ["localhost:9200"]
+
+packetbeat.protocols.http:
+  ports: [80, 5601, 9200, 8080, 8081, 5000, 8002]
+
+processors:
+- add_cloud_metadata: ~

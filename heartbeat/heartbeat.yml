@@ -1,0 +1,86 @@
+###################### Heartbeat Configuration #########################
+
+heartbeat.monitors:
+- type: http
+  id: elasticsearch-monitor
+  name: Elasticsearch Monitor
+  schedule: '@every 5s'
+  urls:
+    - http://elasticsearch:9200
+  check.request:
+    method: GET
+  check.response:
+    status: 200
+
+- type: http
+  id: kibana-monitor
+  name: Kibana Monitor
+  schedule: '@every 5s'
+  urls:
+    - http://kibana:5601
+  check.request:
+    method: GET
+  check.response:
+    status: 200
+
+- type: http
+  id: nginx-monitor
+  name: Nginx Monitor
+  schedule: '@every 5s'
+  urls:
+    - http://nginx-app:80
+  check.request:
+    method: GET
+  check.response:
+    status: 200
+
+- type: icmp
+  id: elasticsearch-icmp
+  name: Elasticsearch ICMP
+  schedule: '@every 5s'
+  hosts:
+    - elasticsearch
+
+- type: icmp
+  id: kibana-icmp
+  name: Kibana ICMP
+  schedule: '@every 5s'
+  hosts:
+    - kibana
+
+- type: icmp
+  id: nginx-icmp
+  name: Nginx ICMP
+  schedule: '@every 5s'
+  hosts:
+    - nginx-app
+
+processors:
+  - add_cloud_metadata: ~  # Si no usas Elastic Cloud, puedes comentar o eliminar esta línea
+
+# Output configuration to Elasticsearch
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS}"]
+  username: "${ELASTIC_USER}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl:
+    enabled: true
+    certificate_authorities: ["${CA_CERT}"]
+
+# # Kibana setup for dashboard loading
+# setup.kibana:
+#   host: "${KIBANA_HOSTS}"
+#   protocol: "https"
+#   username: "${ELASTIC_USER}"
+#   password: "${ELASTIC_PASSWORD}"
+#   ssl:
+#     enabled: true
+#     certificate_authorities: ["${CA_CERT}"]
+
+# # Dashboards configuration
+# setup.dashboards:
+#   enabled: false  # Cambié esto a false para evitar posibles problemas con los dashboards
+
+# # Optional: General configuration for heartbeat logging and other settings
+# #logging.level: debug  # Si necesitas más detalles, puedes cambiar el nivel de log
+# #logging.selectors: ["*"]  # Si necesitas depurar algo específico, puedes habilitar selectores de logs
